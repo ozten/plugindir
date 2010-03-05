@@ -533,7 +533,7 @@ Pfs = {
         
         function isChar(c) { return "abcdefghijklmnopqrstuvwxyz".indexOf(c.toLowerCase())  >= 0; }
         
-        function isSeperator(c) { return c === '.' || c === 'r'; }
+        function isSeperator(c) { return c === '.'; }
     
         function startVersion(token, j) {
             if (isNumeric(token[j])) {
@@ -559,7 +559,7 @@ Pfs = {
             currentVersionPart = "";
         }
         
-        for(var i=tokens.length-1; i >= 0; i--){
+        for(var i=0; i < tokens.length; i++){
             var token = Pfs.$.trim(tokens[i]);
             if (token.length === 0) {
                 continue;
