@@ -4,13 +4,13 @@
         "name": "Java Runtime Environment",
         "vendor": "Sun Microsystems", 
         "platform": {
-            "app_id": "{ec8030f7-c20a-464f-9b0e-13a3a9e97384}"
+            "app_id": "*"
         }, 
         "url": "http://www.java.com/en/download/manual.jsp", 
         "manual_installation_url": "http://java.com/firefoxjre"
     }, 
     "aliases": {
-        "regex": [ "Java Embedding Plugin .*", "Java.* Platform SE.*" ]
+        "regex": [ "Java Embedding Plugin .*", "Java.* Platform SE.*", ".*Java Deployment Toolkit.*" ]
     },
     "releases": [
         {
@@ -30,6 +30,7 @@
         }
     ], 
     "mimes": [
+        "application/npruntime-scriptable-plugin",
         "application/x-java-vm", 
         "application/x-java-applet;jpi-version=1.5", 
         "application/x-java-bean;jpi-version=1.5", 
