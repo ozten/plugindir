@@ -94,8 +94,11 @@ class Auth_Login_Model extends ORM implements Zend_Acl_Resource_Interface
      */
     public function find_default_profile_for_login()
     {
+        Kohana::log('info', "Attempting to find a default profile");
         if (!$this->loaded) return null;
+        Kohana::log('info', "We're loaded");
         $profiles = $this->profiles;
+        #Kohana::log('info', "profiles are " . Kohana::debug($profiles[0]));
         return $profiles[0];
     }
 

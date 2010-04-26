@@ -1,8 +1,3 @@
-/*jslint browser: true, plusplus: false */
-/*global Pfs, PluginDetect, window*/
-// jslint that we should fix below
-/*jslint eqeqeq: false*/
-
 /**
  * Browser detection based on QuirksMode code
  *
@@ -10,7 +5,7 @@
  * License: http://www.quirksmode.org/about/copyright.html
  */
 /*jslint laxbreak: true */
-window.BrowserDetect = {
+BrowserDetect = {
     detect: function () {
         return {
             browser: 
@@ -29,10 +24,9 @@ window.BrowserDetect = {
         };
     },
     searchString: function (data) {
-        var i, dataString, dataProp;
-        for (i = 0; i < data.length; i++) {
-            dataString = data[i].string;
-            dataProp = data[i].prop;
+        for (var i=0;i<data.length;i++)	{
+            var dataString = data[i].string;
+            var dataProp = data[i].prop;
             this.versionSearchString = data[i].versionSearch || data[i].identity;
             this.buildSearchString = data[i].buildSearch || data[i].identity;
             if (dataString) {
@@ -43,15 +37,11 @@ window.BrowserDetect = {
                 return data[i].identity;
             }
         }
-        return undefined;
     },
     searchRev: function (searchString, dataString) {
-        var index = dataString.indexOf(searchString),
-	    val;
-        if (index == -1) {
-            return undefined;
-        }
-        val = dataString.substring(index + searchString.length + 1);
+        var index = dataString.indexOf(searchString);
+        if (index == -1) { return; }
+        var val = dataString.substring(index+searchString.length+1);
         return val.split(' ')[0];
     },
     dataBrowser: [
@@ -60,7 +50,7 @@ window.BrowserDetect = {
             subString: "Chrome",
             identity: "Chrome"
         },
-        {
+        { 	
             string: navigator.userAgent,
             subString: "OmniWeb",
             versionSearch: "OmniWeb/",
@@ -78,7 +68,7 @@ window.BrowserDetect = {
             identity: "Opera",
             buildSearch: "Presto"
         },
-        {	    
+        {
             string: navigator.vendor,
             subString: "iCab",
             identity: "iCab"
@@ -152,4 +142,5 @@ window.BrowserDetect = {
             identity: "Linux"
         }
     ]
+
 };

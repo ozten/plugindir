@@ -24,9 +24,9 @@ $config['profiles/([^/]+)/plugins/detail/([^;]+);(.*)'] =
 $config['profiles/([^/]+)/plugins/detail/(.*)'] = 
     'plugins/detail/$2/html/$1';
 
-$config['plugins/submissions/(.*)'] = 'plugins/submission_detail/$1';
+$config['([^/]*)/plugins/submissions/(.*)'] = 'plugins/submission_detail/$2';
 
-$config['plugins/(.*)'] = 'plugins/$1';
+$config['([^/]*)plugins/(.*)'] = 'plugins/$2';
 
 $config['pfs/v2'] = 'search/pfs_v2';
 

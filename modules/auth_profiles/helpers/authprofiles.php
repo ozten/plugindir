@@ -215,12 +215,13 @@ class authprofiles_Core
     {
         // Allow by default if no ACLs defined.
         if (empty(self::$acls)) return true;
-
+        Kohana::log('info', "is logged in=" . self::is_logged_in());
         // Use logged in profile, or anonymous role if no login
         $role = self::is_logged_in() ? 
             self::get_profile() : 
             Kohana::config('auth_profiles.base_anonymous_role');
-
+        Kohana::log('info', "Got far enough to ask isAllowed");
+        Kohana::log('info', "role=${role} resource=${resource} privilege=${privilege}");
         return self::$acls->isAllowed($role, $resource, $privilege);
     }
 

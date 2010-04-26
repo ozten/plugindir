@@ -147,6 +147,7 @@ class Plugins_Controller extends Local_Controller {
      */
     function create($screen_name=null)
     {
+        Kohana::log('info', "Handeling create call");
         $profile = ORM::factory('profile', $screen_name);
         $resource = ($profile->loaded) ? $profile : 'profile';
         if (!authprofiles::is_allowed($resource, 'create_in_sandbox'))
@@ -261,6 +262,7 @@ class Plugins_Controller extends Local_Controller {
      */
     function detail($pfs_id, $format='html', $screen_name=null)
     {
+        Kohana::log('info', "Handeling plugin/details request for $pfs_id $format");
         list($plugin, $plugin_profile) = $this->_find_plugin($pfs_id, $screen_name);
         if (!authprofiles::is_allowed($plugin, 'view'))
             return Event::run('system.forbidden');
@@ -273,6 +275,7 @@ class Plugins_Controller extends Local_Controller {
 
                 // Fetch and validate the incoming JSON.
                 $data = json_decode(file_get_contents('php://input'), true);
+                Kohana::log('info', "Seeing " . Kohana::debug($data));
                 if (!$data || !isset($data['meta'])) {
                     // TODO: Need some better validation of this data.
                     header('HTTP/1.1 400 Bad Request');
@@ -384,6 +387,7 @@ class Plugins_Controller extends Local_Controller {
      */
     function delete($pfs_id, $screen_name=null) 
     {
+        Kohana::log('info', "Handeling a delete request for $pfs_id $screen_name");
         list($plugin, $plugin_profile) = $this->_find_plugin($pfs_id, $screen_name);
         if (!authprofiles::is_allowed($plugin, 'delete'))
             return Event::run('system.forbidden');

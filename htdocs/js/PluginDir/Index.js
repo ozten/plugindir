@@ -56,9 +56,8 @@ PluginDir.Index = (function () {
          * Detect installed plugins and render the appropriate table rows.
          */
         buildInstalledPluginsTable: function (plugins_table) {
-            var pluginsObject = window.iePlugins || window.navigator.plugins || {};
             Pfs.endpoint = PluginDir.pfs_endpoint;
-            var browser_plugins = Pfs.UI.browserPlugins(pluginsObject);
+            var browser_plugins = Pfs.UI.browserPlugins(navigator.plugins);
             var browser_info = Pfs.UI.browserInfo();
 
             if (PluginDir.is_logged_in) {

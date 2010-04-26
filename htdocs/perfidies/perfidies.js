@@ -223,7 +223,7 @@ Pfs = {
                     { detection: this.currentPlugin.detection_type, mimetype: mime },
                     function(){ that.pfs2Success.apply(that, arguments);},
                     function(){ that.pfs2Error.apply(that, arguments);}
-                );  
+                );
             },
             /**
              * Stops the finder from continuing to work it's way through plugins in the queue
@@ -298,14 +298,15 @@ Pfs = {
                 if (this.currentPlugin.raw && this.currentPlugin.raw.name) {
                     currentPluginName = this.currentPlugin.raw.name;
                 }
+                Pfs.i(this.currentPlugin);
                 
                 var searchingResults = true;
                 var pluginMatch = false;
                 var pluginInfo;
-
-                for (var i =0; i < data.length; i++) {
+                
+                for (var i =0; i < data.length; i++) {                    
                     if (! searchingResults) { break; }
-                    
+
                     // Grab the current PFS info, and ensure it's well-formed and usable.
                     var pfsInfo = data[i];
                     if (! pfsInfo.aliases ||
@@ -318,6 +319,7 @@ Pfs = {
                             Pfs.e("Malformed PFS2 plugin info, no latest release");
                             break;
                     }
+
                     // Is pfsInfo the plugin we seek?
                     var searchingPluginInfo = true;
                     if (pfsInfo.aliases.literal) {
@@ -343,12 +345,13 @@ Pfs = {
                             }
                         }
                     }
+
                     // This does not appear to be the plugin we're looking for,
                     // so continue.
                     if (!pluginMatch) { continue; }
-                    
+
                     var searchPluginRelease = true;
-                    
+
                     // Prepare a result to be reported to detection callback
                     var to_report = {
                         pluginInfo: this.currentPlugin,
@@ -357,10 +360,10 @@ Pfs = {
                         url: pfsInfo.releases.latest ?  
                             pfsInfo.releases.latest.url : ''
                     };
-                    
-                    if (pfsInfo.releases.latest) {
+
+                    if (pfsInfo.releases.latest) {                            
                         to_report.url = pfsInfo.releases.latest.url;
-                        
+
                         // If a detected_version is available, use it.
                         // Otherwise, fall back to just plain version.
                         var pfs_version = (pfsInfo.releases.latest.detected_version) ?
@@ -369,7 +372,7 @@ Pfs = {
                         var pl_version = (this.currentPlugin.detected_version) ?
                             this.currentPlugin.detected_version :
                             this.currentPlugin.plugin
-                        
+
                         switch(Pfs.compVersion(pl_version, pfs_version)) {
 
                             // Installed is newer than the latest in PFS
@@ -407,8 +410,9 @@ Pfs = {
                             // Installed may be older than latest, keep looking...
                             default: 
                                 break;
-                        }
-                    }                        
+                        }                    
+                    }
+
                     if (this.running && searchPluginRelease && pfsInfo.releases.others) {
                         var others = pfsInfo.releases.others;
                         for (var k=0; searchPluginRelease && k < others.length; k++) {
@@ -454,7 +458,6 @@ Pfs = {
                 }//for over the pfs2 JSON data
 
                 if (this.running === false || pluginMatch) {
-                    
                     searchingResults = false;
                     
                     this.startFindingNextPlugin();    
@@ -530,13 +533,13 @@ Pfs = {
         
         function isChar(c) { return "abcdefghijklmnopqrstuvwxyz".indexOf(c.toLowerCase())  >= 0; }
         
-        function isSeperator(c) { return c === '.'; }
+        function isSeperator(c) { return c === '.' || c === 'r'; }
     
         function startVersion(token, j) {
-            if (isNumeric(token.charAt(j))) {
+            if (isNumeric(token[j])) {
                 inVersion = true;
                 inNumericVersion = true;
-                currentVersionPart += token.charAt(j);
+                currentVersionPart += token[j];
             } /* else {
                 skip we are in the description
             }*/
@@ -556,30 +559,28 @@ Pfs = {
             currentVersionPart = "";
         }
         
-        for(var i=0; i < tokens.length; i++){
-            var token = Pfs.$.trim(tokens[i]);            
+        for(var i=tokens.length-1; i >= 0; i--){
+            var token = Pfs.$.trim(tokens[i]);
             if (token.length === 0) {
                 continue;
             }
-            for(var j=0; j < token.length; j++) {                
+            for(var j=0; j < token.length; j++) {            
                 if (inVersion) {
-                    if (isNumeric(token.charAt(j))) {
+                    if (isNumeric(token[j])) {
                         if (inCharVersion) {
                             finishVersionPart();
                         }
                         inNumericVersion = true;
-                        currentVersionPart += token.charAt(j);                
-                    } else if(isSeperator(token.charAt(j))) {
+                        currentVersionPart += token[j];                
+                    } else if(isSeperator(token[j])) {
                         finishVersionPart();
-                    } else if(j != 0 && isChar(token.charAt(j))) {
+                    } else if(j != 0 && isChar(token[j])) {
                         //    j != 0 - We are mid-token right? 3.0pre OK 3.0 Pre BAD
                         if (inNumericVersion) {
                             finishVersionPart();
                         }
                         inCharVersion = true;
-                        currentVersionPart += token.charAt(j);
-                    } else if(isSeperator(token.charAt(j))) {
-                        finishVersionPart();
+                        currentVersionPart += token[j];
                     } else {
                         if (inNumericVersion) {
                             finishVersionPart();
@@ -594,10 +595,10 @@ Pfs = {
                 //clean up previous token
                 finishVersionPart();
             }
-        }                
-        if (! inVersion) {            
+        }
+        if (! inVersion) {        
             Pfs.w("Unable to parseVersion from " + v);
-        }        
+        }
         return versionChain;    
     },
     /**
@@ -622,25 +623,10 @@ Pfs = {
             }
         }
         if (vc1.length != vc2.length) {
-            // Okay there is extra version info... is the difference significant?
             if (vc1.length > vc2.length) {
-                for (var i = vc2.length; i < vc1.length; i++) {
-                    var version = parseInt(vc1[i], 10);
-                    if (isNaN(version) ||
-                        version > 0) {
-                        return 1;
-                    }
-                }
-                return 0;
+                return 1;
             } else {
-                for (var i = vc1.length; i < vc2.length; i++) {
-                    var version = parseInt(vc2[i], 10);
-                    if (isNaN(version) ||
-                        version > 0) {
-                        return -1;
-                    }
-                }
-                return 0;
+                return -1;
             }
         }
         return 0;
@@ -650,12 +636,7 @@ Pfs = {
      * @private
      */
     shouldSkipPluginNamed: function(name) {
-        // IEBug [].indexOf is undefined
-        if (this.skipPluginsNamed.indexOf) {
-            return this.skipPluginsNamed.indexOf(Pfs.$.trim(name)) >= 0;    
-        } else {
-            return this.skipPluginsNamed.join(', ').indexOf(Pfs.$.trim(name)) >= 0;
-        }
+        return this.skipPluginsNamed.indexOf(Pfs.$.trim(name)) >= 0;
     },
      
     /**
@@ -694,25 +675,6 @@ Pfs = {
      */
     i: function(msg) {if (window.console) {console.info.apply(console, arguments);}}
 };
-
-
-if (window.opera) {
-    window.console = window.console || {};
-    console.info || (console.error = opera.postError)
-    console.info || (console.warn = opera.postError)
-    console.info || (console.info = opera.postError)
-}/* else if (! window.console) {
-    var ul = Pfs.$('body').append('IE Console: <ul id="console"></ul>');
-    
-    window.ielog = function(msg) {
-        ul.append('<li>' + msg + '</li>');
-    };
-    window.console = {};
-    console.error = window.ielog;
-    console.warn = window.ielog;
-    console.info = window.ielog;
-    
-}*/
 //Bug#535030 - All PFS scripts will use Pfs.$ to access jQuery, so that additional inclusions of
 // jQuery or a conflicting  library won't break jQuery or it's plugins
 Pfs.$ = jQuery.noConflict();

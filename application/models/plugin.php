@@ -300,7 +300,7 @@ class Plugin_Model extends ORM_Resource {
                 $release_data['status_code'] = 
                     self::$status_codes[$release_data['status']];
             }
-
+            
             // Find and update or create the appropriate release.
             $release = ORM::find_or_insert(
                 'pluginrelease', 

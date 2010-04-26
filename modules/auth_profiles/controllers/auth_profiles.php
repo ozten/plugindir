@@ -277,6 +277,8 @@ class Auth_Profiles_Controller extends Local_Controller
             return authprofiles::redirect_login();
         }
         
+        $should_require_acl_check = true; // Supports no token senario
+        
         if (empty($reset_token)) {
             // No reset token, so try figuring out the profile and login.
             list($profile, $login) = $this->_find_profile_and_login();
@@ -288,6 +290,9 @@ class Auth_Profiles_Controller extends Local_Controller
                 $this->view->invalid_reset_token = true;
                 return;
             }
+            
+            $should_require_acl_check = false;
+
             $profile = $login->find_default_profile_for_login();
 
             // Use the found login ID and toss name into view.
@@ -298,7 +303,7 @@ class Auth_Profiles_Controller extends Local_Controller
             authprofiles::logout();
         }
 
-        if (!authprofiles::is_allowed($login, 'changepassword'))
+        if ($should_require_acl_check && !authprofiles::is_allowed($login, 'changepassword'))
             return Event::run('system.403');
         
         $_POST['login_name'] = $login->login_name;
