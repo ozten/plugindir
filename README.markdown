@@ -25,6 +25,12 @@ without "-dist" and modified for your installation.
     * Optionally, you can do away with the .htaccess and move the rules to your
         main Apache config.
 
+* For a development installation, copy index.php-dev-dist to index.php
+    * This should leave error display and logging enabled
+
+* For a production/staging installation, copy index.php-prod-dist to index.php
+    * This should disable error display and logging, along with settings specified below.
+
 * Set up Apache config something like the following for a virtual host:
 
         <VirtualHost *:80>

@@ -12,7 +12,7 @@ PluginDir.Editor = (function () {
         // Description of plugin properties.
         plugin_properties: {}, 
         // Whether or not to autosave using idle timer.
-        autosave: true, 
+        autosave: false, 
         // Idle timer used to save when user is inbetween edits.
         save_timer: null, 
         // Whether or not a save is in progress
@@ -265,7 +265,7 @@ PluginDir.Editor = (function () {
             // Forcibly overwrite any edits to PFS ID with original value.
             $this.definition.meta.pfs_id = $this.pfs_id;
             
-            $this.definition.mimes = (''+$('#mimes').val()).split("\n");
+            $this.definition.mimes = (''+$('#mimes').val()).replace("\n", " ").split(" ");
             
             $this.definition.aliases = {
                 literal: (''+$('#literal_aliases').val()).split("\n"),

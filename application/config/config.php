@@ -116,11 +116,12 @@ $config['extension_prefix'] = 'MY_';
  */
 $config['modules'] = array
 (
-    
+    MODPATH.'cef_logging',
     MODPATH.'phpunit',
 
     MODPATH.'twig',
     MODPATH.'auth_profiles',
+    MODPATH.'csrf_crumbs',
     MODPATH.'lmo_email',
     MODPATH.'l10n',
 );

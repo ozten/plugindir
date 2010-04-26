@@ -2,30 +2,30 @@
 /**
  * Configuration for auth profiles
  */
-$config['secret']      = '8675309jenny';
+
+// URL template for redirect from /home
 $config['home_url']    = 'profiles/%1$s';
+
+// Name of the login cookie
 $config['cookie_name'] = 'auth_profiles';
+
+// Path of the login cookie
 $config['cookie_path'] = '/';
 
+// Secret used in encrypting login cookies
+$config['secret'] = '8675309jenny';
+
+// Default role given to non-authenticated users.
 $config['base_anonymous_role'] = 'guest';
-$config['base_profile_role']   = 'member';
 
-/*
-$acls = new Zend_Acl();
-$config['acls'] = $acls
+// Default role given to authenticated users.
+$config['base_profile_role'] = 'member';
 
-    ->addRole(new Zend_Acl_Role('guest'))
-    ->addRole(new Zend_Acl_Role('member'), 'guest')
-    ->addRole(new Zend_Acl_Role('admin'), 'member')
+// Length of the salt used in {SHA-256} password hashes
+$config['salt_length'] = 16;
 
-    // Admins can do anything.
-    ->allow('admin')
+// Maximum number of failed logins for an account before login lockout
+$config['max_failed_logins'] = 5; 
 
-    ->add(new Zend_Acl_Resource('profiles'))
-    ->allow('member', 'profiles', array('view_own', 'edit_own',))
-
-    ->add(new Zend_Acl_Resource('logins'))
-    ->allow('member', 'logins', array('view_own', 'edit_own',))
-
-    ;
-*/
+// Amount of seconds for which login will be disabled on lockout trigger
+$config['account_lockout_period'] = 3600;

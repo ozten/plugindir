@@ -16,130 +16,51 @@ class Plugins_Controller extends Local_Controller {
         parent::__construct();
     }
 
-
     /**
-     * Accept plugin data contributions.
+     * Produce a JSON index of all plugins with release counts.
      */
-    function submit()
-    {
-        if (!authprofiles::is_allowed('plugin', 'submit_plugin'))
-            return Event::run('system.forbidden');
-
-        $this->view->status_choices = Plugin_Model::$status_choices;
-
-        // Just display the populated form on GET.
-        if ('post' != request::method()) {
-            $this->view->form_data = $_GET;
-            return;
-        }
-
-        // The only requirement is that the captcha is valid.
-        if (!Captcha::valid($this->input->post('captcha'))) {
-            $this->view->form_data = $_POST;
-            $this->view->form_errors = array(
-                'captcha' => 'Valid captcha response is required'
+    function index_json(){
+        $this->auto_render = FALSE;
+        $name_counts = ORM::factory('plugin')->find_release_counts();
+        $out = array();
+        foreach ($name_counts as $count) {
+            $out[] = array(
+                'pfs_id'        => $count->pfs_id,
+                'name'          => $count->name,
+                'release_count' => $count->count,
+                'description'   => $count->description,
+                'modified'      => $count->modified,
+                'href'          => url::site('plugins/detail/' . 
+                    $count->pfs_id . '.json')
             );
-            return;
         }
-
-        // Save the form data as a plugin submission.
-        $submission = ORM::factory('submission')
-            ->set($this->input->post())
-            ->save();
-
-        $this->view->saved = TRUE;
+        return json::render($out, $this->input->get('callback'));
     }
 
     /**
-     * View plugin data submissions.
+     * Offer a JSON API to the PFS ID suggestion method.
      */
-    function submissions()
+    function suggest_pfs_id()
     {
-        if (!authprofiles::is_allowed('plugin', 'view_submissions'))
-            return Event::run('system.forbidden');
+        $this->auto_render = FALSE;
 
-        if ('post' == request::method()) {
-            if ($this->input->post('seen')) {
-                // Disable shadow so modifications are immediately available.
-                Database::disable_read_shadow();
-                // Mark selected submissions as seen on 'seen' POST.
-                $selected = $this->input->post('selected');
-                Database::instance(Kohana::config('model.database'))
-                    ->from('submissions')
-                    ->set('seen', 1)
-                    ->in('id', $selected)
-                    ->update();
-            }
+        $params = array(
+            'mimetype' => '',
+            'filename' => false,
+            'name' => false,
+            'vendor' => false,
+            'callback' => false,
+        );
+        foreach ($params as $name=>$default) {
+            $params[$name] = $this->input->get($name, $default);
         }
 
-        $this->view->by_cat = 'submissions';
+        $callback = $params['callback'];
+        unset($params['callback']);
 
-        $per_page = $this->input->get('count', 25);
-        $page_num = $this->input->get('page', 1);
-        $offset   = ($page_num - 1) * $per_page;
-
-        $submission_model = ORM::factory('submission');
-        $this->view->submissions = $submission_model
-            ->where('seen', 0)
-            ->orderby('created', 'DESC')
-            ->limit($per_page, $offset)
-            ->find_all();
-
-        $this->view->pagination = new Pagination(array(
-            'base_url' => 'plugins/submissions',
-            'style' => 'digg',
-            'items_per_page' => $per_page,
-            'query_string' => 'page',
-            'total_items' => $submission_model->count_last_query()
-        ));
-    }
-
-    /**
-     * Display the details for a given submission.
-     */
-    function submission_detail($id)
-    {
-        if (!authprofiles::is_allowed('plugin', 'view_submissions'))
-            return Event::run('system.forbidden');
-
-        $submission = ORM::factory('submission', $id);
-        if (!$submission->loaded)
-            return Event::run('system.404');
-
-        if ('post' == request::method()) {
-            if ($this->input->post('unseen')) {
-                $submission->set(array('seen' => 0))->save();
-            }
-            if ($this->input->post('seen')) {
-                $submission->set(array('seen' => 1))->save();
-            }
-        }
-
-        $this->view->submission = $submission;
-
-        $this->view->submit_params = http_build_query(array(
-            "status"           => $submission->status,
-            "pfs_id"           => $submission->pfs_id,
-            "name"             => $submission->name,
-            "vendor"           => $submission->vendor,
-            "filename"         => $submission->filename,
-            "description"      => $submission->description,
-            "version"          => $submission->version,
-            "detected_version" => $submission->detected_version,
-            "mimetypes"        => $submission->mimetypes,
-            "appID"            => $submission->appID,
-            "appRelease"       => $submission->appRelease,
-            "appVersion"       => $submission->appVersion,
-            "clientOS"         => $submission->clientOS,
-            "chromeLocale"     => $submission->chromeLocale,
-            "vulnerability_description" => 
-                $submission->vulnerability_description,
-            "vulnerability_url" => 
-                $submission->vulnerability_url,
-        ));
-
-        $this->view->sandbox_plugins = ORM::factory('plugin')
-            ->find_for_sandbox(authprofiles::get_profile('id'));
+        return json::render(
+            ORM::factory('plugin')->suggestPfsId($params), $callback
+        );
     }
 
     /**
@@ -222,7 +143,7 @@ class Plugins_Controller extends Local_Controller {
         if (!authprofiles::is_allowed($profile, 'view_sandbox'))
             return Event::run('system.forbidden');
 
-        $this->view->profile = $profile->as_array();
+        $this->view->profile = $profile;
 
         $this->view->sandbox_plugins = $plugins = ORM::factory('plugin')
             ->where('sandbox_profile_id', $profile->id)
@@ -266,6 +187,17 @@ class Plugins_Controller extends Local_Controller {
         list($plugin, $plugin_profile) = $this->_find_plugin($pfs_id, $screen_name);
         if (!authprofiles::is_allowed($plugin, 'view'))
             return Event::run('system.forbidden');
+
+        if (!empty($screen_name)) {
+            // Try finding the live version of this plugin, since it was looked 
+            // for in a sandbox.
+            $live_plugin = ORM::factory('plugin')
+                ->where('pfs_id', $pfs_id)
+                ->where('sandbox_profile_id IS NULL')
+                ->find();
+            $this->view->live_plugin = ($live_plugin->loaded) ?
+                $live_plugin : null;
+        }
 
         if ('json' == $format) {
 
@@ -343,9 +275,15 @@ class Plugins_Controller extends Local_Controller {
             // Create a new plugin from the export.
             $new_plugin = ORM::factory('plugin')->import($export);
 
-            // Bounce over to sandbox.
             $auth_screen_name = authprofiles::get_profile('screen_name');
-            url::redirect("profiles/{$auth_screen_name}/plugins");
+            if (empty($_GET)) {
+                // Bounce over to sandbox.
+                url::redirect("profiles/{$auth_screen_name}/plugins");
+            } else {
+                // GET params not empty, so bounce them over to editor
+                $qs = http_build_query($_GET);
+                url::redirect("profiles/{$auth_screen_name}/plugins/detail/{$new_plugin->pfs_id};edit?{$qs}");
+            }
 
         }
     }

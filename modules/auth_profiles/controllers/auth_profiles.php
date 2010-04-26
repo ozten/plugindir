@@ -18,6 +18,7 @@ class Auth_Profiles_Controller extends Local_Controller
     {
         parent::__construct();
 
+        // These are methods that require login to access.
         $protected_methods = array(
             'home', 'changeemail', 'logout'
         );
@@ -27,8 +28,37 @@ class Auth_Profiles_Controller extends Local_Controller
             }
         }
 
+        // Protect some methods by requiring an anti-CSRF crumb on POST.
+        $crumb_methods = array(
+            'login', 'register', 'editprofile', 'changeemail', 
+            'changepassword', 'forgotpassword'
+        );
+        if (in_array(Router::$method, $crumb_methods)) {
+            
+            // Generate a crumb for these methods.
+            $this->view->crumb = csrf_crumbs::generate();
+
+            // Require a valid crumb on POST requests.
+            if ('post' == request::method()) {
+                $crumb = $this->input->post('crumb');
+                if (!csrf_crumbs::validate($crumb)) {
+                    Router::$method = 'invalidcrumb';
+                }
+            }
+
+        }
+
         $this->login_model   = new Login_Model();
         $this->profile_model = new Profile_Model();
+    }
+
+    /**
+     * Diversion method for the case where an invalid anti-CSRF crumb is sent 
+     * with a request.
+     */
+    public function invalidcrumb()
+    {
+        // No-op, just render the template.
     }
 
     /**
@@ -97,21 +127,14 @@ class Auth_Profiles_Controller extends Local_Controller
         if (null===$form_data) return;
 
         $login = ORM::factory('login', $form_data['login_name']);
-        if (!$login->active) {
-            $this->view->login_inactive = TRUE;
-            return;
-        } elseif (empty($login->email)) {
-            $this->view->no_verified_email = TRUE;
-            return;
-        }
-
         // TODO: Allow profile selection here if multiple.
         $profile = $login->find_default_profile_for_login();
 
         $login->login($form_data);
         authprofiles::login($login->login_name, $login, $profile);
 
-        if (isset($form_data['jump']) && substr($form_data['jump'], 0, 1) == '/') {
+        if (isset($form_data['jump']) && 
+                substr($form_data['jump'], 0, 1) == '/') {
             // Allow post-login redirect only if the param starts with '/', 
             // interpreted as relatve to root of site.
             return url::redirect($form_data['jump']);
@@ -160,7 +183,19 @@ class Auth_Profiles_Controller extends Local_Controller
             unset($form_data['role']);
         }
 
+        if (!empty($form_data['role']) && $form_data['role'] != $profile->role) {
+            cef_logging::log('000', 'Profile role changed', 1, array(
+                'role_old' => $profile->role, 'role_new' => $form_data['role']
+            ));
+            if ('admin' == $form_data['role']) {
+                cef_logging::log(cef_logging::NEW_PRIVILEGED_ACCOUNT, 
+                    'New Privileged Account', 6);
+            }
+        }
+
         $profile->set($form_data)->save();
+
+        cef_logging::log('000', 'Profile updated', 1);
 
         Session::instance()->set_flash(
             'message', 'Profile updated'
@@ -183,18 +218,41 @@ class Auth_Profiles_Controller extends Local_Controller
         );
         if (null===$form_data) return;
 
-        $token = $login->set_email_verification_token($form_data['new_email']);
+        $profile = $login->find_default_profile_for_login();
+        if ($profile->loaded && 'admin' == $profile->role) {
+            cef_logging::log('000', 'Admin email address change email sent', 6);
+        } else {
+            cef_logging::log('000', 'Email address change email sent', 1);
+        }
 
-        $this->view->email_verification_token_set = true;
+        $revert_token = $login
+            ->generate_email_verification_token();
+
+        email::send_view(
+            $login->email,
+            'auth_profiles/changeemail_revert_email',
+            array(
+                'email_verification_token' => $revert_token,
+                'new_email' => $form_data['new_email'],
+                'login_name' => authprofiles::get_login('login_name')
+            )
+        );
+
+        $new_token = $login
+            ->generate_email_verification_token($form_data['new_email']);
 
         email::send_view(
             $form_data['new_email'],
             'auth_profiles/changeemail_email',
             array(
-                'email_verification_token' => $token,
+                'email_verification_token' => $new_token,
+                'new_email' => $form_data['new_email'],
                 'login_name' => authprofiles::get_login('login_name')
             )
         );
+
+        $this->view->email_verification_token_set = true;
+
     }
 
     /**
@@ -246,13 +304,12 @@ class Auth_Profiles_Controller extends Local_Controller
             $this->input->post('email_verification_token') :
             $this->input->get('email_verification_token');
 
-        list($login, $new_email) = ORM::factory('login')
-            ->find_by_email_verification_token($token);
+        list($login, $new_email, $token_id) = ORM::factory('login')
+            ->change_email_with_verification_token($token);
         if (!$login) {
             $this->view->invalid_token = true;
             return;
         }
-        $login->change_email($new_email);
 
         // TODO: Make auto-login on email verification configurable?
         $profile = $login->find_default_profile_for_login();
@@ -287,6 +344,7 @@ class Auth_Profiles_Controller extends Local_Controller
             $login = ORM::factory('login')
                 ->find_by_password_reset_token($reset_token);
             if (!$login->loaded) {
+                cef_logging::log('000', 'Password change token invalid', 1);
                 $this->view->invalid_reset_token = true;
                 return;
             }
@@ -303,9 +361,6 @@ class Auth_Profiles_Controller extends Local_Controller
             authprofiles::logout();
         }
 
-        if ($should_require_acl_check && !authprofiles::is_allowed($login, 'changepassword'))
-            return Event::run('system.403');
-        
         $_POST['login_name'] = $login->login_name;
 
         // Now that we know who's trying to change a password, validate the 
@@ -320,15 +375,20 @@ class Auth_Profiles_Controller extends Local_Controller
                 'validate_change_password_with_token', 
             'form_errors_auth'
         );
-        if (null===$form_data) return;
+        if (null===$form_data) {
+            cef_logging::log('000', 'Password change failed', 1);
+            return;
+        }
         
         // Finally, perform the password change.
         $changed = $login->change_password($form_data['new_password']);
         if (!$changed) {
             // Something unexpected happened.
             $this->view->password_change_failed = true;
+            cef_logging::log('000', 'Password change failed', 1);
         } else {
             $this->view->password_changed = true;
+            cef_logging::log('000', 'Password changed', 1);
         }
     }
 
@@ -352,6 +412,13 @@ class Auth_Profiles_Controller extends Local_Controller
 
         $reset_token = $login->set_password_reset_token();
         $this->view->password_reset_token_set = true;
+
+        $profile = $login->find_default_profile_for_login();
+        if ($profile->loaded && 'admin' == $profile->role) {
+            cef_logging::log('000', 'Admin password change email sent', 6);
+        } else {
+            cef_logging::log('000', 'Password change email sent', 1);
+        }
 
         email::send_view(
             $login->email,

@@ -1,5 +1,6 @@
 {
     "meta": {
+<<<<<<< HEAD:plugins-info/realjukebox.json
         "pfs_id": "realjukebox",
         "name": "RealJukebox NS Plugin",
         "description": "RealJukebox Netscape Plugin",
@@ -15,12 +16,38 @@
     },
     "mimes": [
     ],
+=======
+        "vendor": "Real", 
+        "description": "RealJukebox Netscape Plugin", 
+        "created": "2010-01-06 19:50:45", 
+        "url": "http://www.real.com/realplayer/rp11free", 
+        "modified": "2010-03-21 17:30:02", 
+        "name": "RealJukebox NS Plugin", 
+        "pfs_id": "realjukebox"
+    }, 
+>>>>>>> a12c88653bf0fcf33744772bf0fc3e994fbb1471:plugins-info/realjukebox.json
     "releases": [
         {
-            "os_name": "win",
-            "version": "1.0.3.448",
-            "filename": "nprjplug.dll",
-            "manual_installation_url": "http://software-download.real.com/26edeb6dd3ffcc2b7722/windows/installer/stubinst/stub/rp11/R41RD01/RealPlayer11GOLD.exe"
+            "status": "latest", 
+            "os_name": "win", 
+            "manual_installation_url": "http://software-download.real.com/26edeb6dd3ffcc2b7722/windows/installer/stubinst/stub/rp11/R41RD01/RealPlayer11GOLD.exe", 
+            "filename": "nprjplug.dll", 
+            "platform": {
+                "app_release": "*", 
+                "locale": "*", 
+                "app_version": "*", 
+                "app_id": "*"
+            }, 
+            "detection_type": "original", 
+            "version": "1.0.3.448", 
+            "detected_version": "1.0.3.448"
         }
-    ]
+    ], 
+    "mimes": [], 
+    "aliases": {
+        "regex": [], 
+        "literal": [
+            "RealJukebox NS Plugin"
+        ]
+    }
 }
